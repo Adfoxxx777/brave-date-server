@@ -1,5 +1,6 @@
 """The utils engine module."""
 
+import logging
 from fastapi import (
     FastAPI,
 )
@@ -14,6 +15,7 @@ from app.config import (
     settings,
 )
 
+logger = logging.getLogger(__name__)
 
 async def init_engine_app(app: FastAPI) -> None:
     """
@@ -28,11 +30,18 @@ async def init_engine_app(app: FastAPI) -> None:
     """
     app_settings = settings()
 
-    client = AsyncIOMotorClient(
-        app_settings.db_url, maxPoolSize=30, minPoolSize=30
-    )
-    database = client.get_default_database()
-    assert database.name == app_settings.MONGODB_DATABASE
-    engine = AIOEngine(client=client, database="tinder")
+    logger.info(f"MONGODB_USERNAME: {app_settings.MONGODB_USERNAME}")
+    logger.info(f"MONGODB_HOST: {app_settings.MONGODB_HOST}")
+    logger.info(f"MONGODB_DATABASE: {app_settings.MONGODB_DATABASE}")
+
+    # Формируем URL для MongoDB
+    host = app_settings.MONGODB_HOST.replace("mongodb+srv://", "")
+    mongodb_url = f"mongodb+srv://{app_settings.MONGODB_USERNAME}:{app_settings.MONGODB_PASSWORD}@{host}/?retryWrites=true&w=majority"
+
+    logger.info(f"MongoDB URL: {mongodb_url}")
+
+    client = AsyncIOMotorClient(mongodb_url)
+    database = client[app_settings.MONGODB_DATABASE]
+    engine = AIOEngine(client=client, database=app_settings.MONGODB_DATABASE)
     app.state.client = client
     app.state.engine = engine

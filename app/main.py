@@ -1,44 +1,24 @@
 """The main module"""
 
-from fastapi import (
-    FastAPI,
-)
-from fastapi.middleware.cors import (
-    CORSMiddleware,
-)
-from functools import (
-    lru_cache,
-)
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from functools import lru_cache
 import logging
-from typing import (
-    Dict,
-)
+from typing import Dict
 import uvicorn
 
-from app.auth import (
-    router as auth_router,
-)
-from app.config import (
-    settings,
-)
-from app.matches import (
-    router as matches_router,
-)
-from app.messages import (
-    router as messages_router,
-)
-from app.users import (
-    router as users_router,
-)
-from app.utils import (
-    engine,
-)
-from app.websockets import (
-    router as websockets_router,
-)
+from app.auth import router as auth_router
+from app.config import settings
+from app.matches import router as matches_router
+from app.messages import router as messages_router
+from app.users import router as users_router
+from app.utils import engine
+from app.websockets import router as websockets_router
 
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
 
 @lru_cache()
 def get_app() -> FastAPI:
@@ -49,24 +29,6 @@ def get_app() -> FastAPI:
         FastAPI : a FastAPI app instance
     """
     app_settings = settings()
-    if app_settings.DEBUG == "info":
-        app = FastAPI(
-            docs_url="/docs",
-            redoc_url="/redocs",
-            title="Brave Chat Server",
-            description="The server side of Brave Chat.",
-            version="1.0",
-            openapi_url="/api/v1/openapi.json",
-        )
-    else:
-        app = FastAPI(
-            docs_url=None,
-            redoc_url=None,
-            title=None,
-            description=None,
-            version=None,
-            openapi_url=None,
-        )
     app = FastAPI(
         docs_url="/docs",
         redoc_url="/redocs",
@@ -88,6 +50,7 @@ def get_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -101,7 +64,6 @@ def get_app() -> FastAPI:
     @app.on_event("shutdown")
     async def shutdown() -> None:
         logger.info("Closing connection with MongoDB...")
-        # bug: TypeError: object NoneType can't be used in 'await' expression
         try:
             await app.state.client.close()
         except Exception as err:
@@ -120,25 +82,14 @@ def get_app() -> FastAPI:
 
     return app
 
-
 tinder_app = get_app()
-
 
 def serve() -> None:
     """
-    A method that run a uvicorn command.
+    A method that runs a uvicorn server.
     """
-    try:
-        uvicorn.run(
-            "app.main:tinder_app",
-            host="0.0.0.0",
-            port=8000,
-            reload=True,
-            log_level="info",
-        )
-    except Exception as err:
-        logger.error(repr(err))
-
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:tinder_app", host="0.0.0.0", port=port, log_level="info")
 
 if __name__ == "__main__":
     serve()

@@ -4,18 +4,19 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 
-# Install make and curl
+# Install curl (может понадобиться для healthcheck)
 RUN apt-get update \
- && apt-get install -y make curl --no-install-recommends \
+ && apt-get install -y curl --no-install-recommends \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 # Install Dependencies
-COPY poetry.lock pyproject.toml Makefile ./
-RUN make docker-install
+COPY poetry.lock pyproject.toml ./
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev
 
 COPY ./app ./app
 
-EXPOSE 8000
-
-CMD ["/root/.local/bin/poetry", "run", "server"]
+# Используем переменную окружения PORT
+CMD uvicorn app.main:tinder_app --host 0.0.0.0 --port $PORT
