@@ -34,9 +34,9 @@ async def init_engine_app(app: FastAPI) -> None:
     logger.info(f"MONGODB_HOST: {app_settings.MONGODB_HOST}")
     logger.info(f"MONGODB_DATABASE: {app_settings.MONGODB_DATABASE}")
 
-    # Формируем URL для MongoDB
+    # Формируем URL для MongoDB (используем обычный mongodb:// протокол)
     host = app_settings.MONGODB_HOST.replace("mongodb+srv://", "")
-    mongodb_url = f"mongodb+srv://{app_settings.MONGODB_USERNAME}:{app_settings.MONGODB_PASSWORD}@{host}/?retryWrites=true&w=majority"
+    mongodb_url = f"mongodb://{app_settings.MONGODB_USERNAME}:{app_settings.MONGODB_PASSWORD}@{host}/{app_settings.MONGODB_DATABASE}?retryWrites=true&w=majority"
 
     logger.info(f"MongoDB URL: {mongodb_url}")
 
